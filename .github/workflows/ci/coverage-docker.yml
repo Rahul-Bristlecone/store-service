@@ -1,0 +1,39 @@
+name: Coverage (from local image)
+
+on:
+  workflow_run:
+    workflows: [ "Build Docker Image (Local)" ]
+    types: [ completed ]
+
+jobs:
+  coverage-from-artifact:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Download Docker image artifact
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: .
+
+      # 2️⃣ Load image
+      - name: Load Docker image
+        run: gunzip -c myapp.tar.gz | docker load
+
+      # 3️⃣ Run coverage inside container, saving XML to a mounted directory
+      - name: Run coverage
+        run: |
+          mkdir -p artifacts
+          docker run --rm \
+            -v ${{ github.workspace }}/artifacts:/artifacts \
+            myapp:ci \
+            /bin/sh -lc "python -m pip install --upgrade pip && pip install coverage pytest && coverage run -m pytest && coverage xml -o /artifacts/coverage.xml"
+
+      # 4️⃣ Upload coverage artifact
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: artifacts/coverage.xml

@@ -1,0 +1,43 @@
+name: Pytest
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "**/*.py"
+      - "requirements*.txt"
+      - "pyproject.toml"
+      - "setup.cfg"
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+concurrency:
+  group: pytest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      # 1️⃣ Checkout code
+      - uses: actions/checkout@v4
+      # 2️⃣ Set up Python environment
+      - uses: actions/setup-python@v5
+        with: { python-version: ${{ matrix.python-version }} }
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install build pytest
+      # 4️⃣ Build the package (optional but good practice before tests)
+      - name: Build package
+        run: python -m build
+      # 5️⃣ Run tests (no coverage)
+      - name: Run tests
+        run: pytest -q
+      # 6️⃣ Upload test results

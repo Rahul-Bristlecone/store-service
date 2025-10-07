@@ -1,0 +1,44 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+# 1️⃣ Check out code
+- task: Checkout@1
+
+# 2️⃣ Set up Python & dependencies
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.11'
+
+- script: |
+    pip install -r requirements.txt
+    pip install flake8 pytest pytest-html pytest-cov
+  displayName: 'Install dependencies'
+
+# 3️⃣ Run Flake8 lint
+- script: |
+    mkdir -p reports/flake8
+    flake8 --format=html --htmldir=reports/flake8
+  displayName: 'Run lint (flake8)'
+
+# 4️⃣ Run tests + coverage
+- script: |
+    mkdir -p reports/tests
+    pytest \
+      --junitxml=reports/tests/results.xml \
+      --html=reports/tests/report.html \
+      --self-contained-html \
+      --cov=. --cov-report=html:reports/coverage \
+      --cov-report=xml:reports/coverage/coverage.xml
+  displayName: 'Run tests'
+
+# 5️⃣ Publish artifacts
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'reports'
+    ArtifactName: 'lint-test-coverage-reports'

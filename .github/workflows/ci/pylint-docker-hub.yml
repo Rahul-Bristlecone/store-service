@@ -1,0 +1,41 @@
+name: Lint (pylint, Docker image from Hub)
+
+on:
+  workflow_run:
+    workflows: [ "Build & Push Image" ]
+    types: [ completed ]
+    # Runs after build workflow completes on any branch matched there
+
+jobs:
+  lint-from-image:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Log in to Docker Hub
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # (Optional) Log in to GHCR
+      # - name: Log in to GitHub Container Registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2️⃣ Pull the exact image built for the triggering commit
+      #    Use head_sha from the originating workflow_run event.
+      - name: Pull image from Docker Hub
+        run: docker pull ${{ secrets.DOCKERHUB_USERNAME }}/myapp:${{ github.event.workflow_run.head_sha }}
+
+      # 3️⃣ Run pylint inside the container
+      #    If pylint isn't baked into the image, install it on the fly.
+      - name: Run pylint in container
+        run: |
+          docker run --rm \
+            ${{ secrets.DOCKERHUB_USERNAME }}/myapp:${{ github.event.workflow_run.head_sha }} \
+            /bin/sh -lc "python -m pip install --upgrade pip && pip install pylint && pylint your_package_name"

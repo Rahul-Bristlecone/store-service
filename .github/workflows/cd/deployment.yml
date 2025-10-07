@@ -1,0 +1,48 @@
+# =============================================== #
+# 5. Deploy job (pushes Prod image to Docker Hub) #
+# =============================================== #
+name: Deploy to Docker Hub and Trigger QA Tests
+on:
+  workflow_run:
+    workflows: [ "CI + Publish Multi Stage Store Pipeline" ]   # This workflow will be triggered when the "CI" workflow finishes.
+    branches: [ test_branch ]    # Only trigger if the CI workflow ran on the 'main' branch.
+    types: [ completed ]  # Trigger only when the CI workflow has fully completed (success or failure).
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest          # The deployment job will run on the latest Ubuntu GitHub Actions runner.
+    needs: [lint, test, coverage]   # This ensures 'deploy' runs ONLY if the 'lint', 'test', and 'coverage' jobs have succeeded.
+
+    steps:
+      # Step 1: Download the Docker image artifact built in a previous workflow job
+      - name: Download prod image artifact from CI workflow
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image-prod  # Name of the artifact to download (must match the name used when uploading it earlier).
+          run-id: ${{ github.event.workflow_run.id }}
+          # with workflow run, run_id is automatically picked as the latest successful run of the specified workflow
+
+      # Step 2: Load the Docker image into the runner's local Docker daemon and push it to Docker Hub
+      - name: Load prod image
+        run: docker load < store-service-prod-*.tar.gz
+
+      - name: Login to Docker Hub
+        # Log in to Docker Hub using credentials stored in GitHub Secrets
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Push Prod image to Docker Hub
+        run: |
+          docker tag store-service:prod_${GITHUB_SHA::7} ${{ secrets.DOCKERHUB_USERNAME }}/store-service:prod_${GITHUB_SHA::7}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/store-service:prod_${GITHUB_SHA::7}
+
+      # Step 3: Trigger a downstream workflow in the QA repository to run tests against the newly deployed image
+      - name: Trigger QA repo
+        run: |
+        # Send a POST request to GitHub's repository dispatch API
+        # This triggers a custom event ('store_service_updated') in the 'myorg/qa-tests' repo
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.QA_REPO_PAT }}" \
+            https://api.github.com/repos/myorg/qa-tests/dispatches \
+            -d '{"event_type":"store_service_updated"}'

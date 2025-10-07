@@ -1,0 +1,41 @@
+name: Build Image
+
+on:
+  # 1️⃣ Allow manual trigger from the Actions tab
+  workflow_dispatch:
+
+  # 2️⃣ Trigger on pushes to the main branch
+  push:
+    branches: [ main ]
+
+  # 3️⃣ Trigger on any pull request (all branches)
+  pull_request:
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 4️⃣ Checkout repository code
+      #     Ensures the workflow has access to your Dockerfile and source
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 5️⃣ Build Docker image locally (no registry push)
+      #     Tag as 'myapp:ci' for identification in this CI run
+      - name: Build image
+        run: docker build -t myapp:ci .
+
+      # 6️⃣ Save Docker image to a compressed tarball
+      #     This file can be uploaded as an artifact for reuse in later jobs
+      - name: Save Docker image
+        run: docker save myapp:ci | gzip > myapp.tar.gz
+
+      # 7️⃣ Upload image artifact for downstream jobs
+      #     Artifact retention set to 7 days to save storage
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: myapp.tar.gz
+          retention-days: 7

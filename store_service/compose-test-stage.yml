@@ -1,0 +1,70 @@
+version: '3.8'
+services:
+  store-service-tests:
+    build:
+      context: ../store_service
+      dockerfile: Dockerfile_multi_stage
+      target: test
+    environment:
+      # Point the tests to the DB container
+      - DATABASE_URI=mysql+pymysql://user:password@mysql-db/store_db
+      - FLASK_ENV=test
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    # If tests also require the API server running, you can instead depend on store-features runtime
+    # and still run pytest focused on integration tests that call HTTP endpoints.
+    # For pure DB-layer tests, this container can run pytest directly:
+    command: >
+      sh -lc "
+      echo 'Waiting for DB...' &&
+      python -c 'import time; time.sleep(2)' &&
+      # Optional: run migrations/seed here (Alembic example):
+      # alembic upgrade head &&
+      pytest -q --maxfail=1 --disable-warnings --junitxml=/reports/junit.xml
+      "
+    volumes:
+      # Optional: capture reports
+      - ./reports:/reports
+
+  # Optional: bring up the runtime app too for API-level integration tests
+  # This allows you to run tests that hit the actual HTTP endpoints.
+  # In summary, store-features is used in integration tests to provide a live API endpoint for
+  # your tests (in store_service_tests) to interact with, simulating real-world usage.
+  # docker-compose -f compose-test-stage.yml up store-features store-features-tests -> this will start both services
+  # store-features & store-features-tests can be run together to test the full stack
+  # or separately if you only want to run unit tests against the DB layer.
+  store-service:
+    build:
+      context: ../store_service
+      dockerfile: Dockerfile_multi_stage
+      target: runtime
+    environment:
+      - FLASK_ENV=test
+      - DATABASE_URI=mysql+pymysql://user:password@mysql-db/store_db
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+
+  mysql-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: store_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -prootpass --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - mysql-test-data:/var/lib/mysql
+    # Optionally auto-init schema/seed
+    # volumes:
+    #   - ./db/init:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  mysql-test-data:

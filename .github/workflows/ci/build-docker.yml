@@ -1,0 +1,33 @@
+name: Build Docker Image (Local)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2️⃣ Build Docker image locally (no registry push)
+      #     This builds an image tagged 'myapp:ci' from the Dockerfile in the repo root.
+      - name: Build image
+        run: docker build -t myapp:ci .
+
+      # 3️⃣ Save Docker image to a compressed tarball
+      #     This allows the image to be reused in downstream jobs without rebuilding.
+      - name: Save image as artifact
+        run: docker save myapp:ci | gzip > myapp.tar.gz
+
+      # 4️⃣ Upload image as a workflow artifact
+      #     Downstream jobs can download and load it with `docker load`.
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: myapp.tar.gz

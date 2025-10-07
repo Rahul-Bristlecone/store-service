@@ -1,0 +1,29 @@
+name: Coverage
+
+on:
+  # 1️⃣ Trigger when the "Build Image" workflow completes
+  #     Ensures we always run tests/coverage on the exact image built in CI
+  workflow_run:
+    workflows: [ "Build Image" ]
+    types: [ completed ]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 2️⃣ Download the Docker image artifact from the Build Image workflow
+      #     This is the compressed tarball (myapp.tar.gz) saved earlier
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      # 3️⃣ Load the image into the local Docker daemon
+      #     Then run pytest inside the container with coverage enabled
+      #     --cov=your_package : replace with your package/module name
+      #     --cov-report=xml   : generate XML coverage report for CI tools
+      - name: Run tests with coverage in container
+        run: |
+          gunzip -c myapp.tar.gz | docker load
+          docker run --rm myapp:ci pytest --cov=your_package --cov-report=xml

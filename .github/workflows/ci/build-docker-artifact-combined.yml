@@ -1,0 +1,142 @@
+# -------------------------------
+# Name of the workflow (appears in GitHub Actions UI)
+# -------------------------------
+name: CI + Publish Multi Stage Store Pipeline
+
+# -------------------------------
+# Events that trigger this workflow
+# -------------------------------
+on:
+  push:                              # Trigger when code is pushed...
+    branches: [ test_branch ]        # ...only if the push is to the <test> or <staging> branch
+  pull_request:                      # Also trigger for any pull request targeting 'main'
+
+# ************************************************************* #
+# Concurrency - prevent multiple runs for the same ref at once  #
+# ************************************************************* #
+concurrency:
+  group: ci-pipeline-${{ github.ref }}   # Group by branch/ref name
+  cancel-in-progress: true               # Cancel any in-progress runs for this ref
+
+# **************************************************** #
+# Jobs section — each job runs in its own VM/container #
+# **************************************************** #
+jobs:
+
+  # ================================================== #
+  # 1. Build both CI and Prod images in one go         #
+  # ================================================== #
+  build-image:
+    runs-on: ubuntu-latest    # Use the latest Ubuntu runner
+    steps:
+      # Step 1: Check out the repository code into the runner
+      - uses: actions/checkout@v4
+
+      # Step 2: Build CI stage (with tests) and Prod stage (without tests)
+            # --target ci builds the CI image
+            # --target prod builds the production image
+            # Both are built in the same run to ensure consistency
+            # '.' means Dockerfile is in the repo root - change it as Dockerfile is not in root
+      - name: Build CI and Prod images
+        run: |
+              docker build --target ci -t store-service:ci_v0.01 .
+              docker build --target prod -t store-service:prod_v0.01 .
+
+      # Step 3: Save the CI image to artifact for lint/test jobs to a compressed tarball
+            # docker save exports the image, gzip compresses it
+      - name: Save CI image to file
+        run: |
+          docker save store-service:ci_v0.01 | gzip > store-service-ci.tar.gz
+
+      # Upload the tarball as a GitHub Actions artifact
+      # This allows other jobs to download and reuse the image
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-service-ci-artifact    # Artifact name (used when downloading)
+          path: store-service-ci.tar.gz      # File to upload
+          retention-days: 7                  # Keep artifact for 7 days
+
+      # Step 4: Save Prod image to artifact for deploy job to a compressed tarball
+            # docker save exports the image, gzip compresses it
+      - name: Save Prod image to file
+        run: docker save store-service:prod_v0.01 | gzip > store-service-prod.tar.gz
+
+      # Upload the tarball as a GitHub Actions artifact
+      # This allows other jobs to download and reuse the image
+      - uses: actions/upload-artifact@v4
+        with:
+          name: store-service-prod-artifact   # Artifact name (used when downloading)
+          path: store-service.tar.gz          # File to upload
+          retention-days: 7                   # Keep artifact for 7 days
+
+  # ================================================================== #
+  # 2. LINT JOB — runs pylint inside the built container (on CI image) #
+  # ================================================================== #
+  lint:
+    runs-on: ubuntu-latest
+    needs: build-image                        # Wait until build-image job finishes
+    steps:
+      # Step 1: Download the Docker image artifact from build-image job
+      - uses: actions/download-artifact@v4
+        with:
+          name: store-service-ci-artifact
+
+      # Step 2: Decompress and load the image into Docker
+      - run: |
+          gunzip -c store-service.tar.gz | docker load
+
+      # Step 3: Run pylint inside the container
+      # Replace <store_service> with the actual module name where your code resides
+      - run: |
+          docker run --rm store-service:ci_v0.01 pylint store_service
+
+  # ================================================================== #
+  # 3. TEST JOB — runs pytest inside the built container (on CI image) #
+  # ================================================================== #
+  test:
+    runs-on: ubuntu-latest
+    needs: build-image
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: store-service-ci-artifact
+      - run: |
+          gunzip -c store-service-ci.tar.gz | docker load
+
+        # Run unit tests directly in the container
+      - run: |
+          docker run --rm store-service:ci_v0.01 pytest --maxfail=1 --disable-warnings -q
+        # --maxfail=1 stops after first failure
+        # --disable-warnings hides warnings
+        # -q runs pytest in quiet mode
+
+      # Run integration tests via Docker Compose
+      # Start DB first (detached) so it can pass healthcheck
+      - name: Start MySQL (detached)
+        run: docker compose -f docker-compose-test.yml up -d store-db
+
+      # Run tests; fail the job if the test service exits non-zero
+      - name: Run integration tests
+        run: docker compose -f docker-compose-test.yml up --abort-on-container-exit --exit-code-from store-service-tests store-service-tests
+
+      # Always clean up containers and volumes
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker-compose-test.yml down -v
+
+  # =================================================================== #
+  # 4. COVERAGE JOB — runs pytest with coverage reporting (on CI image) #
+  # =================================================================== #
+  coverage:
+    runs-on: ubuntu-latest
+    needs: build-image
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: store-service-ci-artifact
+      - run: |
+          gunzip -c store-service-ci.tar.gz | docker load
+      - run: |
+          docker run --rm store-service:ci_v0.01 pytest --cov=store_service --cov-report=xml
+        # --cov=store_service measures coverage for your package
+        # --cov-report=xml outputs coverage in XML format for CI tools

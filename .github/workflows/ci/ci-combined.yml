@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 🛠 Checkout the repository
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 🐍 Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 📦 Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 🔍 Lint with flake8
+      - name: Lint
+        run: |
+          pip install flake8
+          flake8 .
+
+      # 🧪 Run tests with coverage
+      - name: Test with pytest
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=.
+
+      # 📊 Upload coverage report to GitHub summary
+      - name: Upload coverage report
+        run: |
+          coverage xml
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          coverage report >> $GITHUB_STEP_SUMMARY

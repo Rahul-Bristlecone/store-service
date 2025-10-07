@@ -1,0 +1,30 @@
+name: Tests (pytest)
+
+on:
+  # 1️⃣ Trigger automatically after the "Build Image" workflow completes
+  #     This ensures we run tests against the exact Docker image built in CI
+  workflow_run:
+    workflows: [ "Build Image" ]
+    types: [ completed ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 2️⃣ Download the Docker image artifact from the Build Image workflow
+      #     This file (myapp.tar.gz) is the compressed image saved earlier
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      # 3️⃣ Load the Docker image into the local Docker daemon
+      # 4️⃣ Run pytest inside the container
+      #     --maxfail=1         : Stop after the first test failure
+      #     --disable-warnings  : Suppress warning output
+      #     -q                  : Run in quiet mode (minimal output)
+      - name: Run pytest in container
+        run: |
+          gunzip -c myapp.tar.gz | docker load
+          docker run --rm myapp:ci pytest --maxfail=1 --disable-warnings -q

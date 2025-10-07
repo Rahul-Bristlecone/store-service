@@ -1,0 +1,27 @@
+name: Tests (pytest from local image)
+
+on:
+  workflow_run:
+    workflows: [ "Build Docker Image (Local)" ]
+    types: [ completed ]
+
+jobs:
+  pytest-from-artifact:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Download Docker image artifact
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: .
+
+      # 2️⃣ Load image
+      - name: Load Docker image
+        run: gunzip -c myapp.tar.gz | docker load
+
+      # 3️⃣ Run pytest inside container
+      - name: Run pytest
+        run: docker run --rm myapp:ci pytest -q

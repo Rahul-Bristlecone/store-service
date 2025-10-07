@@ -1,0 +1,27 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose up (tests)
+        run: |
+          docker compose -f compose-dev.yml -f compose-test.yml up --build \
+            --abort-on-container-exit --exit-code-from store-service-tests
+      - name: Tear down
+        if: always()
+        run: docker compose -f compose-dev.yml -f compose-test.yml down -v
+
+  build-runtime:
+    needs: integration-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build final runtime image
+        run: docker build -f ../store_service/Dockerfile --target runtime -t myapp:latest ../store_service
+      - name: Push
+        run: docker push my-registry/myapp:latest

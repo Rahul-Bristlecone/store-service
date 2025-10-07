@@ -1,0 +1,28 @@
+name: Lint (pylint)
+
+on:
+  # 1️⃣ Trigger automatically after the "Build Image" workflow finishes
+  #     Ensures we lint the exact Docker image built in CI
+  workflow_run:
+    workflows: [ "Build Image" ]
+    types: [ completed ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 2️⃣ Download the Docker image artifact produced by the Build Image workflow
+      #     This contains the compressed image file (myapp.tar.gz)
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      # 3️⃣ Load the Docker image into the local Docker daemon
+      # 4️⃣ Run pylint inside the container
+      #     Replace 'your_package' with the actual package/module name to lint
+      - name: Run pylint in container
+        run: |
+          gunzip -c myapp.tar.gz | docker load
+          docker run --rm myapp:ci pylint your_package
