@@ -49,8 +49,8 @@ def create_app(db_url=None):
         store_service.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://store_user:store_pass@mysql_store:3306/store_db"
     """
 
-    SQLALCHEMY_DATABASE_URI = (f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@"
-                               f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', '3306')}/{os.getenv('DB_NAME')}")
+    SQLALCHEMY_DATABASE_URI = (f"mysql+pymysql://{os.getenv('MYSQL_USER')}:{os.getenv('MYSQL_PASSWORD')}@"
+                               f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', '3306')}/{os.getenv('MYSQL_DATABASE')}")
     store_service.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
     db.init_app(store_service)  # db is SQLAlchemy extension
 
