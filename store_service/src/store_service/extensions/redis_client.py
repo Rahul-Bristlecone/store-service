@@ -1,4 +1,4 @@
-# user_service/src/user_service/extensions/redis_client.py
+# store_service/src/store_service/extensions/redis_client.py
 import os
 import redis
 
