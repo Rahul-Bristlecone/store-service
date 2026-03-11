@@ -1,4 +1,5 @@
-from flask_jwt_extended import jwt_required
+from flask import request
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_smorest import Blueprint, abort
 from flask.views import MethodView
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -84,7 +85,7 @@ class StoreCreate(MethodView):
         token = request.headers.get("Authorization").split()[1]
         # Step 3: Redis check - confirm token is still active
         cached_token = redis_client.get(f"session:{user_id}")
-        if not cached_token or cached_token.decode("utf-8") != token:
+        if not cached_token or cached_token != token:
             abort(401, message="Session expired or revoked")
         try:
             db.session.add(store)

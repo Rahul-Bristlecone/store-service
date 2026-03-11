@@ -16,8 +16,8 @@ spec:
       - name: store-service
         image: sharma92/daemons:store-service
         envFrom:
-        - secretRef:
-            name: db-secret
+          - secretRef:
+              name: db-secret
         ports:
         - containerPort: 5000
 ---
