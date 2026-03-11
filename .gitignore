@@ -1,13 +1,25 @@
+# Bytecode & caches
+__pycache__/
+*.py[cod]
+*$py.class
+services/**/__pycache__/
+
+# Secrets & Configs
+.env
 config.py
 Utilities.sql_creds.py
 Resources.config.json
 Resources.stores_info.json
-services/__pycache__
-services/models/__pycache__
-services/resources/__pycache__
-.idea/misc.xml
-.idea/pythonProject1.iml
-C:\Users\Rahul.Sharma4\PycharmProjects\Digital_Data_Manager\services\user_service\.env
-C:\Users\Rahul.Sharma4\PycharmProjects\Digital_Data_Manager\services\store_service\.env
-../../.idea/pythonProject1.iml
-store_service/.env
+*.json
+
+# IDE (covers ALL .idea files including misc.xml, *.iml, copilot.xml)
+.idea/
+
+# Logs/DB
+*.log
+*.db
+*.sqlite3
+
+# OS generated
+.DS_Store
+Thumbs.db

@@ -3,6 +3,7 @@ from flask_smorest import Blueprint, abort
 from flask.views import MethodView
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
+from store_service.src.store_service.extensions.redis_client import redis_client
 from store_service.src.store_service.extensions.db import db
 from store_service.src.store_service.models.store_db import StoreModel
 from store_service.src.store_service.schemas.store_schema import StoreSchema, UpdateStoreSchema
@@ -66,6 +67,7 @@ class StoreList(MethodView):
 
 @blp.route("/create_store")  # This is the end-point for creating a store
 class StoreCreate(MethodView):
+    # MethodView is a class that provides methods for handling HTTP requests (GET, POST, PUT, DELETE, etc.) in a class-based view.
     # This class is used to create a store, it is not used to update a store
     # It is used to create a store with the name of the store, which is unique for each store
     # The store_id is generated using uuid4() which is a unique universal id
@@ -76,6 +78,14 @@ class StoreCreate(MethodView):
     def post(self, store_data):
         # check if the name already exists, this can also be done using Marshmallow
         store = StoreModel(**store_data)
+        # Step 1: Extract user id from JWT
+        user_id = get_jwt_identity()
+        # Step 2: Extract token from Authorization header
+        token = request.headers.get("Authorization").split()[1]
+        # Step 3: Redis check - confirm token is still active
+        cached_token = redis_client.get(f"session:{user_id}")
+        if not cached_token or cached_token.decode("utf-8") != token:
+            abort(401, message="Session expired or revoked")
         try:
             db.session.add(store)
             db.session.commit()

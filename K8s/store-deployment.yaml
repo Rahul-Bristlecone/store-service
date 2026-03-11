@@ -17,7 +17,7 @@ spec:
         image: sharma92/daemons:store-service
         envFrom:
         - secretRef:
-            name: mysql-secret
+            name: db-secret
         ports:
         - containerPort: 5000
 ---
