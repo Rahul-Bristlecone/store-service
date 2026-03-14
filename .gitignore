@@ -14,6 +14,7 @@ Resources.stores_info.json
 
 # IDE (covers ALL .idea files including misc.xml, *.iml, copilot.xml)
 .idea/
+.venv/
 
 # Logs/DB
 *.log

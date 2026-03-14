@@ -1,9 +1,12 @@
 import os
 from dotenv import load_dotenv
 
+load_dotenv()
+
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from flask_smorest import Api
+from flask_cors import CORS
 
 from store_service.src.store_service.extensions.db import db
 from store_service.src.store_service.resources.store import blp as StoreBp
@@ -18,6 +21,7 @@ from store_service.src.store_service.resources.tags import blp as TagsBp
 # db_host = Resources.config.DB_HOST
 def create_app(db_url=None):
     store_service = Flask(__name__)
+    store_service.config["CORS_AUTOMATIC_OPTIONS"] = True
     store_service.config["PROPAGATE_EXCEPTIONS"] = True
     store_service.config["API_TITLE"] = "Store service API"
     store_service.config["API_VERSION"] = "v1"
@@ -26,10 +30,25 @@ def create_app(db_url=None):
     store_service.config['TESTING'] = True
     store_service.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui"
     store_service.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
+    store_service.config['TESTING'] = True  # Enable testing mode for the Flask app
+    
+    # Configure CORS for production
+    allowed_origins = os.getenv('ALLOWED_ORIGINS').split(",")
+    allowed_origins = [origin.strip() for origin in allowed_origins]
+    
+    CORS(
+    store_service,
+    origins=allowed_origins,
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    intercept_exceptions=True
+    )
 
-    """ for SQLite, local database file is created in the data directory of the store service application.
-    This is useful for development and testing purposes, as it allows the application to run without needing an 
-    external database server. (not to be used in production)
+    """ 
+        for SQLite, local database file is created in the data directory of the store service application.
+        This is useful for development and testing purposes, as it allows the application to run without needing an 
+        external database server. (not to be used in production)
     """
     # store_service.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data/store_data.db"
 
@@ -51,10 +70,13 @@ def create_app(db_url=None):
 
     SQLALCHEMY_DATABASE_URI = (f"mysql+pymysql://{os.getenv('MYSQL_USER')}:{os.getenv('MYSQL_PASSWORD')}@"
                                f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', '3306')}/{os.getenv('MYSQL_DATABASE')}")
+    print("Connecting to DB:", SQLALCHEMY_DATABASE_URI)  # helpful for debugging
+
     store_service.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
     db.init_app(store_service)  # db is SQLAlchemy extension
 
     api = Api(store_service)
+
     """
         Note: As the store service is consuming (validating) JWT tokens, the following code configures JWT 
         (JSON Web Token) handling for the store service. JWT is a compact, URL-safe means of representing 
@@ -75,7 +97,7 @@ def create_app(db_url=None):
         (Note: JWT signatures are verified, not decrypted—JWT does not use decryption for this process.)
         ***
     """
-    load_dotenv()
+
     store_service.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY")
     store_service.config["JWT_TOKEN_LOCATION"] = ["headers"]
     JWTManager(store_service)
