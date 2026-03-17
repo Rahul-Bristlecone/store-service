@@ -1,3 +1,5 @@
+import json
+
 from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_smorest import Blueprint, abort
@@ -83,10 +85,23 @@ class StoreCreate(MethodView):
         user_id = get_jwt_identity()
         # Step 2: Extract token from Authorization header
         token = request.headers.get("Authorization").split()[1]
+        
         # Step 3: Redis check - confirm token is still active
-        cached_token = redis_client.get(f"session:{user_id}")
-        if not cached_token or cached_token != token:
+        cached_session = redis_client.get(f"session:{user_id}")
+        if not cached_session:
             abort(401, message="Session expired or revoked")
+
+        # Parse JSON stored in Redis
+        try:
+            session_data = json.loads(cached_session)
+            cached_token = session_data.get("token")
+        except Exception:
+            abort(401, message="Invalid session data")
+
+        if cached_token != token:
+            abort(401, message="Session expired or revoked")
+        
+        # Save store
         try:
             db.session.add(store)
             db.session.commit()

@@ -3,13 +3,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
 from flask_smorest import Api
 from flask_cors import CORS
 
 from store_service.src.store_service.extensions.db import db
+# Import all models to register them with SQLAlchemy
+from store_service.src.store_service.models import StoreModel, ItemModel, TagsModel, OrderModel, OrderItem, ItemTags
 from store_service.src.store_service.resources.store import blp as StoreBp
+from store_service.src.store_service.resources.orders import blp as OrderBp
 from store_service.src.store_service.resources.product import blp as ItemBp
 from store_service.src.store_service.resources.tags import blp as TagsBp
 
@@ -106,8 +109,13 @@ def create_app(db_url=None):
     def create_tables():
         db.create_all()
 
+    @store_service.route("/health")
+    def health():
+        return jsonify({"status": "healthy"}), 200
+
     api.register_blueprint(StoreBp)
     api.register_blueprint(ItemBp)
     api.register_blueprint(TagsBp)
+    api.register_blueprint(OrderBp)
 
     return store_service

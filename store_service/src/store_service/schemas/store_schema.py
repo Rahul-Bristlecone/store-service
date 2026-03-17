@@ -13,8 +13,29 @@ class PlainItemSchema(Schema):
 
 class PlainStoreSchema(Schema):
     store_id = fields.Int(dump_only=True)
-    name = fields.Str(required=True)
-    # product = fields.List(fields.Str())
+    store_name = fields.Str(required=True)
+
+    customer_id = fields.Int(required=True)
+    address_line1 = fields.Str(required=True)
+    address_line2 = fields.Str()
+    address_line3 = fields.Str()
+    pin_code = fields.Str(required=True)
+    state_code = fields.Str(required=True)
+    country_code = fields.Str(required=True)
+    shipping_time = fields.Int(required=True)
+
+
+# Plain schema for orders (basic fields)
+class PlainOrderSchema(Schema):
+    order_id = fields.Int(dump_only=True)
+    store_id = fields.Int(required=True)
+
+    order_status = fields.Str(required=True)
+    total_amount = fields.Float(required=True)
+    currency = fields.Str(required=True)
+
+    created_at = fields.DateTime(dump_only=True)
+    updated_at = fields.DateTime(dump_only=True)
 
 
 class PlainTagsSchema(Schema):
@@ -39,6 +60,16 @@ class ItemSchema(PlainItemSchema):
     stores = fields.Nested(PlainStoreSchema(), dump_only=True)
     # Multiple tags can be associated with one item. Hence, Nested List
     tags = fields.List(fields.Nested(PlainTagsSchema()), dump_only=True)
+
+
+# Extended schema for orders with nested relationships
+class OrderSchema(PlainOrderSchema):
+    # Just include IDs here
+    user_id = fields.Int(dump_only=True)
+    store_id = fields.Int(required=True)
+
+    # Nested items still make sense because they belong to orders
+    items = fields.List(fields.Nested(PlainOrderSchema()), dump_only=True)
 
 
 class StoreSchema(PlainStoreSchema):

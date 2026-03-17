@@ -11,5 +11,5 @@ class ItemModel(db.Model):  # Mapping the class to the rows of the table
     price = db.Column(db.Float, unique=False, nullable=False)  # foreign key
     store_id = db.Column(db.Integer, db.ForeignKey("stores.store_id"), unique=False, nullable=False)
 
-    stores = db.relationship("StoreModel", back_populates="items")
+    store = db.relationship("StoreModel", back_populates="items")
     tags = db.relationship("TagsModel", back_populates="items", secondary=ItemTags)
