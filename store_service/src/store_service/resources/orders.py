@@ -1,9 +1,12 @@
 import json
-from flask import request
+import os
+from flask import jsonify, request
 from flask.views import MethodView
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_smorest import Blueprint, abort
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+
+from store_service.src.store_service.utils.edifact_transformer import transform_edifact_to_json
 
 from store_service.src.store_service.extensions.db import db
 from store_service.src.store_service.extensions.redis_client import redis_client
@@ -13,6 +16,41 @@ from store_service.src.store_service.schemas.store_schema import OrderSchema, Pl
 
 # Create blueprint for Orders
 blp = Blueprint("orders", __name__, description="Operations on orders")
+
+def create_order_from_payload(order_data):
+    """
+    Shared logic to create an order in the database.
+    Validates JWT, checks Redis session, and persists the order.
+    """
+    user_id = get_jwt_identity()
+    token = request.headers.get("Authorization").split()[1]
+
+    cached_session = redis_client.get(f"session:{user_id}")
+    if not cached_session:
+        abort(401, message="Session expired or revoked")
+
+    try:
+        session_data = json.loads(cached_session)
+        cached_token = session_data.get("token")
+    except Exception:
+        abort(401, message="Invalid session data")
+
+    if cached_token != token:
+        abort(401, message="Session expired or revoked")
+
+    # Inject user_id from JWT
+    order = OrderModel(user_id=user_id, **order_data)
+
+    try:
+        db.session.add(order)
+        db.session.commit()
+    except IntegrityError:
+        abort(400, message="Order already exists")
+    except SQLAlchemyError:
+        abort(500, message="Error inserting order into database")
+
+    return order
+
 
 # -------------------------------
 # Endpoint: /order/<order_id>
@@ -24,6 +62,7 @@ class OrderResource(MethodView):
         order = OrderModel.query.get_or_404(order_id)
         return order
 
+
 # -------------------------------
 # Endpoint: /orders
 # -------------------------------
@@ -33,40 +72,33 @@ class OrderList(MethodView):
     def get(self):
         return OrderModel.query.all()
 
+
 # -------------------------------
 # Endpoint: /create_order
 # -------------------------------
 @blp.route("/create_order")
 class OrderCreate(MethodView):
     @jwt_required()
-    @blp.arguments(PlainOrderSchema)   # validate incoming request
-    @blp.response(201, OrderSchema)    # return created order
+    @blp.arguments(PlainOrderSchema)
+    @blp.response(201, OrderSchema)
     def post(self, order_data):
-        user_id = get_jwt_identity()
-        token = request.headers.get("Authorization").split()[1]
+        return create_order_from_payload(order_data)
 
-        cached_session = redis_client.get(f"session:{user_id}")
-        if not cached_session:
-            abort(401, message="Session expired or revoked")
-
-        try:
-            session_data = json.loads(cached_session)
-            cached_token = session_data.get("token")
-        except Exception:
-            abort(401, message="Invalid session data")
-
-        if cached_token != token:
-            abort(401, message="Session expired or revoked")
-
-        # Inject user_id from JWT
-        order = OrderModel(user_id=user_id, **order_data)
-
-        try:
-            db.session.add(order)
-            db.session.commit()
-        except IntegrityError:
-            abort(400, message="Order already exists")
-        except SQLAlchemyError:
-            abort(500, message="Error inserting order into database")
     
-        return order
+@blp.route("/upload_edi")
+class UploadEdiResource(MethodView):
+    @jwt_required()
+    @blp.response(201, OrderSchema)
+    def post(self):
+        if "file" not in request.files:
+            abort(400, message="No file uploaded")
+
+        edi_file = request.files["file"]
+        file_path = os.path.join("/tmp", edi_file.filename)
+        edi_file.save(file_path)
+
+        # Transform EDIFACT → JSON
+        order_data = transform_edifact_to_json(file_path)
+
+        # Reuse the same order creation logic
+        return create_order_from_payload(order_data)
