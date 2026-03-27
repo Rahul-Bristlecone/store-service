@@ -20,7 +20,8 @@ Resources.stores_info.json
 *.log
 *.db
 *.sqlite3
-
+store_service/migrations
+Dockerfile.fixed
 # OS generated
 .DS_Store
 Thumbs.db
