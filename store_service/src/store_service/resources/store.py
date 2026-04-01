@@ -109,6 +109,7 @@ class StoreCreate(MethodView):
             insert_statement = text(
                 """
                 INSERT INTO stores (
+                    user_store_number,
                     customer_id,
                     store_name,
                     address_line1,
@@ -120,6 +121,7 @@ class StoreCreate(MethodView):
                     shipping_time,
                     user_id
                 ) VALUES (
+                    :user_store_number,
                     :customer_id,
                     :store_name,
                     :address_line1,
@@ -136,10 +138,13 @@ class StoreCreate(MethodView):
             db.session.execute(insert_statement, {**store_data, "user_id": user_id})
             db.session.commit()
 
-            store = StoreModel.query.filter_by(store_name=store_data["store_name"]).first()
+            store = StoreModel.query.filter_by(
+                user_id=user_id,
+                user_store_number=store_data["user_store_number"],
+            ).first()
         except IntegrityError:
             db.session.rollback()
-            abort(400, message="Store already exists")
+            abort(400, message="Store number already exists for this user")
         except SQLAlchemyError as e:
             db.session.rollback()
             print("SQLAlchemy error:", str(e))

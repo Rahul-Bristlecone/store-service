@@ -13,6 +13,7 @@ class PlainItemSchema(Schema):
 
 class PlainStoreSchema(Schema):
     store_id = fields.Int(dump_only=True)
+    user_store_number = fields.Int(required=True)
     store_name = fields.Str(required=True)
 
     customer_id = fields.Int(required=True)
@@ -29,7 +30,8 @@ class PlainStoreSchema(Schema):
 # Plain schema for orders (basic fields)
 class PlainOrderSchema(Schema):
     order_id = fields.Int(dump_only=True)
-    store_id = fields.Int(required=True)
+    store_id = fields.Int(dump_only=True)
+    user_store_number = fields.Int(required=True, load_only=True)
 
     user_id = fields.Int(dump_only=True)
 
@@ -69,7 +71,7 @@ class ItemSchema(PlainItemSchema):
 class OrderSchema(PlainOrderSchema):
     # Just include IDs here
     user_id = fields.Int(dump_only=True)
-    store_id = fields.Int(required=True)
+    store_id = fields.Int(dump_only=True)
 
     # Nested items still make sense because they belong to orders
     items = fields.List(fields.Nested(PlainOrderSchema()), dump_only=True)
