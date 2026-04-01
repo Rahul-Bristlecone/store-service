@@ -4,7 +4,7 @@ def transform_edifact_to_json(file_path: str) -> dict:
     segments = parse_edifact(file_path)
 
     # Extract values from EDIFACT segments
-    store_id = int(segments.get("BGM", ["", "", "0"])[2])  # BGM+220+2+9 → "2"
+    user_store_number = int(segments.get("BGM", ["", "", "0"])[2])  # BGM+220+2+9 → "2"
     order_status = "pending"  # mapped manually from BGM status code
 
     # CUX+2:INR:9 => currency is the second component in the composite value.
@@ -18,7 +18,7 @@ def transform_edifact_to_json(file_path: str) -> dict:
     total_amount = float(pri_parts[1]) if len(pri_parts) > 1 else 0.0
 
     return {
-        "store_id": store_id,
+        "user_store_number": user_store_number,
         "order_status": order_status,
         "total_amount": total_amount,
         "currency": currency

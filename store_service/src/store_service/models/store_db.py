@@ -2,9 +2,12 @@ from store_service.src.store_service.extensions.db import db
 
 class StoreModel(db.Model):
     __tablename__ = "stores"
-    __table_args__ = (db.UniqueConstraint("user_id", "store_name", name="uq_stores_user_id_store_name"),)
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "user_store_number", name="uq_stores_user_id_user_store_number"),
+    )
 
     store_id = db.Column(db.Integer, primary_key=True)
+    user_store_number = db.Column(db.Integer, nullable=False)
     customer_id = db.Column(db.Integer, nullable=False)
     store_name = db.Column(db.String(40), nullable=False)
 

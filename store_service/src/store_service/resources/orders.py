@@ -38,12 +38,13 @@ def create_order_from_payload(order_data):
     if cached_token != token:
         abort(401, message="Session expired or revoked")
 
-    store = StoreModel.query.filter_by(store_id=order_data["store_id"], user_id=user_id).first()
+    user_store_number = order_data.pop("user_store_number")
+    store = StoreModel.query.filter_by(user_store_number=user_store_number, user_id=user_id).first()
     if not store:
-        abort(400, message="Store does not exist for this user")
+        abort(400, message="Store number does not exist for this user")
 
     # Inject user_id from JWT
-    order = OrderModel(user_id=user_id, **order_data)
+    order = OrderModel(user_id=user_id, store_id=store.store_id, **order_data)
 
     try:
         db.session.add(order)
