@@ -48,10 +48,10 @@ kind: Service
 metadata:
   name: store-service
 spec:
-  type: NodePort
+  # type: NodePort
   selector:
     app: store-service
   ports:
     - port: 5000
       targetPort: 5000
-      nodePort: 30002
+      # nodePort: 30002

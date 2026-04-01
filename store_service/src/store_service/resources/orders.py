@@ -1,6 +1,6 @@
 import json
 import os
-from flask import jsonify, request
+from flask import request
 from flask.views import MethodView
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_smorest import Blueprint, abort
@@ -11,7 +11,7 @@ from store_service.src.store_service.utils.edifact_transformer import transform_
 from store_service.src.store_service.extensions.db import db
 from store_service.src.store_service.extensions.redis_client import redis_client
 from store_service.src.store_service.models.order_details_model import OrderModel
-from store_service.src.store_service.models.order_item import OrderItem
+from store_service.src.store_service.models.store_db import StoreModel
 from store_service.src.store_service.schemas.store_schema import OrderSchema, PlainOrderSchema
 
 # Create blueprint for Orders
@@ -22,7 +22,7 @@ def create_order_from_payload(order_data):
     Shared logic to create an order in the database.
     Validates JWT, checks Redis session, and persists the order.
     """
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     token = request.headers.get("Authorization").split()[1]
 
     cached_session = redis_client.get(f"session:{user_id}")
@@ -38,6 +38,10 @@ def create_order_from_payload(order_data):
     if cached_token != token:
         abort(401, message="Session expired or revoked")
 
+    store = StoreModel.query.filter_by(store_id=order_data["store_id"], user_id=user_id).first()
+    if not store:
+        abort(400, message="Store does not exist for this user")
+
     # Inject user_id from JWT
     order = OrderModel(user_id=user_id, **order_data)
 
@@ -45,8 +49,10 @@ def create_order_from_payload(order_data):
         db.session.add(order)
         db.session.commit()
     except IntegrityError:
+        db.session.rollback()
         abort(400, message="Order already exists")
     except SQLAlchemyError:
+        db.session.rollback()
         abort(500, message="Error inserting order into database")
 
     return order
@@ -68,9 +74,11 @@ class OrderResource(MethodView):
 # -------------------------------
 @blp.route("/orders")
 class OrderList(MethodView):
+    @jwt_required()
     @blp.response(200, OrderSchema(many=True))
     def get(self):
-        return OrderModel.query.all()
+        user_id = int(get_jwt_identity())
+        return OrderModel.query.filter_by(user_id=user_id).all()
 
 
 # -------------------------------

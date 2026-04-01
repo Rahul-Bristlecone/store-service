@@ -16,6 +16,7 @@ class PlainStoreSchema(Schema):
     store_name = fields.Str(required=True)
 
     customer_id = fields.Int(required=True)
+    user_id = fields.Int(dump_only=True)  # comment later
     address_line1 = fields.Str(required=True)
     address_line2 = fields.Str()
     address_line3 = fields.Str()
@@ -29,6 +30,8 @@ class PlainStoreSchema(Schema):
 class PlainOrderSchema(Schema):
     order_id = fields.Int(dump_only=True)
     store_id = fields.Int(required=True)
+
+    user_id = fields.Int(dump_only=True)
 
     order_status = fields.Str(required=True)
     total_amount = fields.Float(required=True)
