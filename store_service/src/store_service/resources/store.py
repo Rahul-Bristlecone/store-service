@@ -4,6 +4,7 @@ from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask_smorest import Blueprint, abort
 from flask.views import MethodView
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from store_service.src.store_service.extensions.redis_client import redis_client
@@ -62,10 +63,15 @@ class Store(MethodView):
 
 @blp.route("/stores")
 class StoreList(MethodView):
+    @jwt_required()  # remove this later
     @blp.response(200, StoreSchema(many=True))
     def get(self):
-        return StoreModel.query.all()
+        # return StoreModel.query.all() - uncomment
         # store = StoreModel.query.get_or_404(store_id)
+
+        # remove this part later
+        user_id = get_jwt_identity()
+        return StoreModel.query.filter_by(user_id=user_id).all()
 
 
 @blp.route("/create_store")  # This is the end-point for creating a store
@@ -79,10 +85,8 @@ class StoreCreate(MethodView):
     @blp.arguments(StoreSchema)  # Validation of request data for creating a store (Marshmallow)
     @blp.response(201, StoreSchema)  # Decorating the response
     def post(self, store_data):
-        # check if the name already exists, this can also be done using Marshmallow
-        store = StoreModel(**store_data)
-        # Step 1: Extract user id from JWT
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
+
         # Step 2: Extract token from Authorization header
         token = request.headers.get("Authorization").split()[1]
         
@@ -100,14 +104,45 @@ class StoreCreate(MethodView):
 
         if cached_token != token:
             abort(401, message="Session expired or revoked")
-        
-        # Save store
+
         try:
-            db.session.add(store)
+            insert_statement = text(
+                """
+                INSERT INTO stores (
+                    customer_id,
+                    store_name,
+                    address_line1,
+                    address_line2,
+                    address_line3,
+                    pin_code,
+                    state_code,
+                    country_code,
+                    shipping_time,
+                    user_id
+                ) VALUES (
+                    :customer_id,
+                    :store_name,
+                    :address_line1,
+                    :address_line2,
+                    :address_line3,
+                    :pin_code,
+                    :state_code,
+                    :country_code,
+                    :shipping_time,
+                    :user_id
+                )
+                """
+            )
+            db.session.execute(insert_statement, {**store_data, "user_id": user_id})
             db.session.commit()
+
+            store = StoreModel.query.filter_by(store_name=store_data["store_name"]).first()
         except IntegrityError:
+            db.session.rollback()
             abort(400, message="Store already exists")
-        except SQLAlchemyError:
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            print("SQLAlchemy error:", str(e))
             abort(500, message="Store not available while creating")
 
         return store
