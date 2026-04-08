@@ -11,7 +11,8 @@ class StoreModel(db.Model):
     customer_id = db.Column(db.Integer, nullable=False)
     store_name = db.Column(db.String(40), nullable=False)
 
-    user_id = db.Column(db.Integer, db.ForeignKey("user.user_id"), nullable=False)
+    # user_id = db.Column(db.Integer, db.ForeignKey("user.user_id"), nullable=False)
+    user_id = db.Column(db.Integer, nullable=False)
 
     # Address fields
     address_line1 = db.Column(db.String(100), nullable=False)
