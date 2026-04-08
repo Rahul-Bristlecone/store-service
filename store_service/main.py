@@ -78,6 +78,9 @@ def create_app(db_url=None):
     store_service.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
     db.init_app(store_service)  # db is SQLAlchemy extension
 
+    with store_service.app_context():
+        db.create_all()
+
     api = Api(store_service)
 
     """
@@ -105,9 +108,9 @@ def create_app(db_url=None):
     store_service.config["JWT_TOKEN_LOCATION"] = ["headers"]
     JWTManager(store_service)
 
-    @store_service.before_request
-    def create_tables():
-        db.create_all()
+    # @store_service.before_request
+    # def create_tables():
+    #     db.create_all()
 
     @store_service.route("/health")
     def health():

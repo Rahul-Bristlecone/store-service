@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: store-migration-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: migration
+        image: sharma92/daemons:store-service
+        command: ["alembic"]
+        args: ["-c", "store_service/alembic.ini", "upgrade", "head"]
+
+        envFrom:
+          - secretRef:
+              name: db-secret
+
+      restartPolicy: Never
+  backoffLimit: 2
