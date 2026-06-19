@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: store-service
-        image: sharma92/daemons:store-service
+        image: sharma92/daemons:store-service-latest
         imagePullPolicy: Always
         envFrom:
           - secretRef:
@@ -53,5 +53,5 @@ spec:
     app: store-service
   ports:
     - port: 5000
-      targetPort: 5002
+      targetPort: 5000
       # nodePort: 30002
