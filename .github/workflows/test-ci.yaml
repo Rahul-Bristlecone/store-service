@@ -70,6 +70,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./Dockerfile.prod
           push: true
-          tags: sharma92/store-service:latest
+          tags: |
+            sharma92/daemons:store-service-latest
+            sharma92/daemons:store-service-${{ github.sha }}
