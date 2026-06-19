@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "product-service"
+name = "store-service"
 version = "0.1.0"
 description = "Flask-based user account service"
 authors = [
@@ -58,7 +58,7 @@ testpaths = ["tests"]
 addopts = "--cov=product --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=85"
 
 [tool.coverage.run]
-source = ["product"]
+source = ["store"]
 omit = [
     "*/tests/*",
     "*/migrations/*",
