@@ -82,8 +82,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Start Minikube
-        uses: medyagh/setup-minikube@v0.0.18
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: v1.29.0
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
 
       - name: Deploy to Minikube
         run: |
