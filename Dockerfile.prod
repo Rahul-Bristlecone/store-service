@@ -1,0 +1,56 @@
+# Stage 1: Builder
+FROM python:3.12-alpine AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache \
+    build-base \
+    gcc \
+    musl-dev \
+    jpeg-dev \
+    zlib-dev \
+    libpng-dev \
+    freetype-dev \
+    openssl-dev \
+    libffi-dev
+
+# Copy project metadata and source code
+COPY pyproject.toml README.md ./
+COPY src/ ./src
+COPY migrations/ ./migrations
+
+# Install dependencies into a wheelhouse
+RUN pip install --upgrade pip setuptools wheel \
+    && pip wheel --no-build-isolation --wheel-dir /app/wheels .
+
+# Stage 2: Runtime
+FROM python:3.12-alpine
+
+WORKDIR /app
+
+RUN addgroup -S app && adduser -S -G app app
+
+# Install runtime shared libraries used by native Python wheels
+RUN apk add --no-cache \
+    jpeg \
+    zlib \
+    libpng \
+    freetype \
+    openssl \
+    libffi
+
+# Install only runtime deps from wheels
+COPY --from=builder /app/wheels /wheels
+RUN pip install --no-cache-dir /wheels/*
+
+USER app
+# Copy application code
+COPY src/ ./src
+COPY migrations/ ./migrations
+COPY run.py ./
+
+# Expose Flask port
+EXPOSE 5000
+
+CMD ["python", "run.py"]
