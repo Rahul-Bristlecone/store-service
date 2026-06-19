@@ -18,7 +18,7 @@ RUN apk add --no-cache \
 # Copy project metadata and source code
 COPY pyproject.toml README.md ./
 COPY src/ ./src
-COPY migrations/ ./migrations
+# COPY migrations/ ./migrations
 
 # Install dependencies into a wheelhouse
 RUN pip install --upgrade pip setuptools wheel \
@@ -47,7 +47,7 @@ RUN pip install --no-cache-dir /wheels/*
 USER app
 # Copy application code
 COPY src/ ./src
-COPY migrations/ ./migrations
+# COPY migrations/ ./migrations
 COPY run.py ./
 
 # Expose Flask port
