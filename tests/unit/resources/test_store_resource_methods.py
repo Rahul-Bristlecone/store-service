@@ -3,7 +3,7 @@ import inspect
 import pytest
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from src.store_service.resources import store as store_resource
+from store_service.resources import store as store_resource
 
 
 def _unwrap(method):

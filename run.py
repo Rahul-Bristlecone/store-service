@@ -1,5 +1,5 @@
 # run.py
-from src.store_service.main import create_app
+from store_service.main import create_app
 
 app = create_app()
 

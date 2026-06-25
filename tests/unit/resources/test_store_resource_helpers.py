@@ -1,7 +1,7 @@
 import pytest
 from flask import Flask
 
-from src.store_service.resources import store as store_resource
+from store_service.resources import store as store_resource
 
 
 class _FakeQuery:

@@ -1,4 +1,4 @@
-from src.store_service.utils import edifact_transformer
+from store_service.utils import edifact_transformer
 
 
 def test_transform_edifact_to_json_maps_fields(monkeypatch):

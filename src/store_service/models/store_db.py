@@ -1,4 +1,4 @@
-from src.store_service.extensions.db import db
+from store_service.extensions.db import db
 
 class StoreModel(db.Model):
     __tablename__ = "stores"
