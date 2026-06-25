@@ -1,28 +1,50 @@
-# Bytecode & caches
+# Bytecode and caches
 __pycache__/
 *.py[cod]
 *$py.class
 services/**/__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Secrets & Configs
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test and coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Secrets and local config
 .env
+.env.*
+.flaskenv
 config.py
 Utilities.sql_creds.py
 Resources.config.json
 Resources.stores_info.json
-*.json
 
-# IDE (covers ALL .idea files including misc.xml, *.iml, copilot.xml)
+# IDE/editor files
 .idea/
-.venv/
+.vscode/
+*.iml
 
-# Logs/DB
+# Logs and local DB files
 *.log
 *.db
 *.sqlite3
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Misc
 store_service/migrations
 Dockerfile.fixed
-# OS generated
 .DS_Store
 Thumbs.db
 test.edi

@@ -1,1 +1,37 @@
+.git
+.gitignore
+.github/
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Test and coverage artifacts
+tests/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Local configuration and editor files
 .env
+.env.*
+.flaskenv
+.idea/
+.vscode/
+
+# Build and packaging output
+build/
+dist/
+*.egg-info/
+
+# Misc local files
+*.log
+*.db
+*.sqlite3
+Dockerfile.fixed
