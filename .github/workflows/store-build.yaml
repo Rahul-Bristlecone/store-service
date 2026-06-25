@@ -1,0 +1,23 @@
+name: Store service CI
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sast:
+    name: Security Analysis
+    uses: Rahul-Bristlecone/user-account-service/.github/workflows/sast.yaml@main
+    with:
+      target-environment: production
+    secrets: inherit
+
+  ci:
+    name: Build and Test
+    needs: sast
+    uses: Rahul-Bristlecone/user-account-service/.github/workflows/reusable-ci.yaml@main
+    with:
+      service-name: store-service
+      docker-repo: daemons
+      target-environment: production
+    secrets: inherit
