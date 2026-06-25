@@ -6,7 +6,7 @@ def test_redis_client_uses_environment_values(monkeypatch):
     monkeypatch.setenv("REDIS_PORT", "6380")
     monkeypatch.setenv("REDIS_PASSWORD", "secret")
 
-    from src.store_service.extensions import redis_client as redis_module
+    from store_service.extensions import redis_client as redis_module
 
     captured = {}
 

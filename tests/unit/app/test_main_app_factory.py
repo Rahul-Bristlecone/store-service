@@ -1,4 +1,4 @@
-from src.store_service import main as main_module
+from store_service import main as main_module
 
 
 def test_create_app_configures_extensions_and_health_route(monkeypatch):

@@ -1,7 +1,7 @@
 import pytest
 from marshmallow import ValidationError
 
-from src.store_service.schemas.store_schema import StoreSchema
+from store_service.schemas.store_schema import StoreSchema
 
 
 def test_store_schema_requires_customer_name():

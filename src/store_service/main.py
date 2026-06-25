@@ -8,9 +8,9 @@ from flask_jwt_extended import JWTManager
 from flask_smorest import Api
 from flask_cors import CORS
 
-from src.store_service.extensions.db import db
+from store_service.extensions.db import db
 # Import all models to register them with SQLAlchemy
-from src.store_service.resources.store import blp as StoreBp
+from store_service.resources.store import blp as StoreBp
 
 # This is called factory pattern
 

@@ -1,4 +1,4 @@
-from src.store_service.helper.edifact_parser import parse_edifact
+from store_service.helper.edifact_parser import parse_edifact
 
 
 def test_parse_edifact_parses_segments(tmp_path):

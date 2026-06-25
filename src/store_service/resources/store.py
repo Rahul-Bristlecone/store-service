@@ -7,10 +7,10 @@ from flask.views import MethodView
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
-from src.store_service.extensions.redis_client import redis_client
-from src.store_service.extensions.db import db
-from src.store_service.models.store_db import StoreModel
-from src.store_service.schemas.store_schema import StoreSchema
+from store_service.extensions.redis_client import redis_client
+from store_service.extensions.db import db
+from store_service.models.store_db import StoreModel
+from store_service.schemas.store_schema import StoreSchema
 
 # created a blueprint "stores" with description and Dunder method (__name__)
 # Dunder is usually used for operator overloading
